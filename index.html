@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>財務自由・退休倒數計算機 | RetireEarly</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --card-bg: rgba(22, 30, 46, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #10b981;
+      --primary-glow: rgba(16, 185, 129, 0.25);
+      --accent: #38bdf8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --input-bg: #0f172a;
+      --input-border: #334155;
+      --fire-line: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.08) 0px, transparent 50%);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 32px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1140px;
+    }
+
+    /* Header */
+    header {
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--primary);
+      width: fit-content;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    @media (min-width: 900px) {
+      .dashboard-grid {
+        grid-template-columns: 430px 1fr;
+      }
+    }
+
+    /* Cards */
+    .glass-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Presets */
+    .preset-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 22px;
+    }
+
+    .btn-preset {
+      background: #1e293b;
+      border: 1px solid var(--input-border);
+      color: var(--text-main);
+      padding: 8px 6px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .btn-preset:hover {
+      background: #334155;
+      border-color: var(--primary);
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.88rem;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+      cursor: pointer;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+    }
+
+    input[type="number"] {
+      width: 100px;
+      padding: 6px 10px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.9rem;
+      font-family: 'JetBrains Mono', monospace;
+      text-align: right;
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-glow);
+    }
+
+    /* Mode Selector Tabs */
+    .mode-tabs {
+      display: flex;
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: #1e293b;
+      color: var(--primary);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    /* Accelerators / Easter Egg */
+    .accent-box {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(16, 185, 129, 0.08));
+      border: 1px dashed rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+
+    .toggle-label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .toggle-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .toggle-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider-toggle {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155;
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider-toggle:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider-toggle {
+      background-color: var(--primary);
+    }
+
+    input:checked + .slider-toggle:before {
+      transform: translateX(20px);
+    }
+
+    /* KPI Results */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      opacity: 0.8;
+    }
+
+    .kpi-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .kpi-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .kpi-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .badge-diff {
+      color: var(--primary);
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    /* Chart Container */
+    .chart-box {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      margin-top: 10px;
+    }
+
+    footer {
+      margin-top: 32px;
+      color: #64748b;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="badge">🔥 經典 4% 法則與複利模型</div>
+      <h1>財務自由・退休倒數計算機</h1>
+      <p class="subtitle">拉動滑桿調整你的儲蓄與投資習慣，探索自己何時能實現不用看老闆臉色的躺平人生。</p>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- 控制面板 (Left) -->
+      <div class="glass-card">
+        <div class="section-title">⚡ 快速代入情境</div>
+        <div class="preset-container">
+          <button class="btn-preset" onclick="applyPreset(22, 5, 8000, 30000)">🎓 剛畢業</button>
+          <button class="btn-preset" onclick="applyPreset(28, 30, 20000, 40000)">💼 穩定小資</button>
+          <button class="btn-preset" onclick="applyPreset(32, 120, 50000, 60000)">🚀 衝刺族</button>
+        </div>
+
+        <div class="section-title">🎯 退休目標模式</div>
+        <div class="mode-tabs">
+          <button class="tab-btn" onclick="setMode('lean', this)">🌱 極簡躺平 (75%)</button>
+          <button class="tab-btn active" onclick="setMode('standard', this)">⚖️ 標準生活</button>
+          <button class="tab-btn" onclick="setMode('fat', this)">💎 奢華享受 (150%)</button>
+        </div>
+
+        <div class="section-title">📊 參數設定</div>
+
+        <!-- 年齡 -->
+        <div class="form-group">
+          <div class="label-row">
+            <span>目前年齡</span>
+            <span id="txt-age">25 歲</span>
+          </div>
+          <div class="input-row">
+            <input type="range" id="age" min="18" max="65" value="25" step="1">
+            <input type="number" id="num-age" value="25">
+          </div>
+        </div>
+
+        <!-- 目前資產 -->
+        <div class="form-group">
+          <div class="label-row">
+            <span>目前投資本金 (萬 NTD)</span>
+            <span id="txt-initAsset">20 萬元</span>
+          </div>
+          <div class="input-row">
+            <input type="range" id="initAsset" min="0" max="3000" value="20" step="5">
+            <input type="number" id="num-initAsset" value="20">
+          </div>
+        </div>
+
+        <!-- 每月儲蓄投入 -->
+        <div class="form-group">
+          <div class="label-row">
+            <span>每月定期投資 (NTD)</span>
+            <span id="txt-monthly">15,000 元</span>
+          </div>
+          <div class="input-row">
+            <input type="range" id="monthly" min="1000" max="150000" value="15000" step="1000">
+            <input type="number" id="num-monthly" value="15000">
+          </div>
+        </div>
+
+        <!-- 退休後每月預期開銷 -->
+        <div class="form-group">
+          <div class="label-row">
+            <span>退休後月生活費 (NTD)</span>
+            <span id="txt-expenses">35,000 元</span>
+          </div>
+          <div class="input-row">
+            <input type="range" id="expenses" min="10000" max="300000" value="35000" step="1000">
+            <input type="number" id="num-expenses" value="35000">
+          </div>
+        </div>
+
+        <!-- 年化報酬率 -->
+        <div class="form-group">
+          <div class="label-row">
+            <span>預期實質年化報酬率 (%)</span>
+            <span id="txt-rate">7.0%</span>
+          </div>
+          <div class="input-row">
+            <input type="range" id="rate" min="1" max="14" value="7.0" step="0.5">
+            <input type="number" id="num-rate" value="7.0">
+          </div>
+        </div>
+
+        <!-- 彩蛋開關 -->
+        <div class="accent-box">
+          <div class="toggle-label">
+            <span class="toggle-title">☕ 戒掉每日手搖/拿鐵</span>
+            <span class="toggle-desc" id="coffee-impact">每月多存 $1,500 投資</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="coffeeToggle" onchange="calculate()">
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+
+      </div>
+
+      <!-- 結果展示 (Right) -->
+      <div class="glass-card" style="display: flex; flex-direction: column;">
+        <div class="section-title">📈 財務自由試算報告</div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-title">預估退休年齡</div>
+            <div class="kpi-value" id="res-fireAge">--</div>
+            <div class="kpi-desc" id="res-remainYears">還需累積 -- 年</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title">FIRE 目標本金</div>
+            <div class="kpi-value" id="res-fireNumber">--</div>
+            <div class="kpi-desc" id="res-fireDesc">以 4% 提領率推算</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title">退休時累計本金</div>
+            <div class="kpi-value" id="res-savedTotal">--</div>
+            <div class="kpi-desc" id="res-interestDiff">複利增幅效益 --%</div>
+          </div>
+        </div>
+
+        <!-- 圖表 -->
+        <div class="chart-box">
+          <canvas id="fireChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>RetireEarly Calculator • 基於 4% 安全提領法則與複利模型 • 支援靜態部署於 GitHub Pages</p>
+    </footer>
+  </div>
+
+  <script>
+    // 雙向綁定欄位清單
+    const fields = [
+      { id: 'age', num: 'num-age', txt: 'txt-age', unit: ' 歲' },
+      { id: 'initAsset', num: 'num-initAsset', txt: 'txt-initAsset', unit: ' 萬元' },
+      { id: 'monthly', num: 'num-monthly', txt: 'txt-monthly', unit: ' 元', format: true },
+      { id: 'expenses', num: 'num-expenses', txt: 'txt-expenses', unit: ' 元', format: true },
+      { id: 'rate', num: 'num-rate', txt: 'txt-rate', unit: '%' }
+    ];
+
+    let currentModeMultiplier = 1.0;
+    let chartInstance = null;
+
+    // 初始化與事件綁定
+    fields.forEach(f => {
+      const slider = document.getElementById(f.id);
+      const numInput = document.getElementById(f.num);
+      const label = document.getElementById(f.txt);
+
+      const sync = (val) => {
+        slider.value = val;
+        numInput.value = val;
+        label.innerText = (f.format ? Number(val).toLocaleString() : val) + f.unit;
+        calculate();
+      };
+
+      slider.addEventListener('input', (e) => sync(e.target.value));
+      numInput.addEventListener('input', (e) => sync(e.target.value));
+      sync(slider.value);
+    });
+
+    // 情境預設按鈕
+    function applyPreset(age, initAsset, monthly, exp) {
+      updateField('age', age);
+      updateField('initAsset', initAsset);
+      updateField('monthly', monthly);
+      updateField('expenses', exp);
+      calculate();
+    }
+
+    function updateField(key, val) {
+      document.getElementById(key).value = val;
+      document.getElementById('num-' + key).value = val;
+      const f = fields.find(i => i.id === key);
+      document.getElementById(f.txt).innerText = (f.format ? Number(val).toLocaleString() : val) + f.unit;
+    }
+
+    // 模式切換 (Lean, Standard, Fat)
+    function setMode(mode, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (mode === 'lean') currentModeMultiplier = 0.75;
+      else if (mode === 'fat') currentModeMultiplier = 1.5;
+      else currentModeMultiplier = 1.0;
+
+      calculate();
+    }
+
+    // 核心計算
+    function calculate() {
+      const currentAge = parseInt(document.getElementById('age').value);
+      const initialCapital = parseFloat(document.getElementById('initAsset').value) * 10000;
+      let monthlyInvestment = parseFloat(document.getElementById('monthly').value);
+      const baseMonthlyExpense = parseFloat(document.getElementById('expenses').value) * currentModeMultiplier;
+      const annualRate = parseFloat(document.getElementById('rate').value) / 100;
+
+      // 手搖飲彩蛋判定
+      const coffeeBonus = document.getElementById('coffeeToggle').checked ? 1500 : 0;
+      monthlyInvestment += coffeeBonus;
+
+      // 4% 法則：FIRE Number = 退休年支出 * 25
+      const fireTarget = baseMonthlyExpense * 12 * 25;
+      const monthlyRate = Math.pow(1 + annualRate, 1 / 12) - 1;
+
+      // 逐月模擬 (最多推算到 85 歲)
+      const maxAge = 85;
+      const maxMonths = Math.max(0, (maxAge - currentAge) * 12);
+
+      let asset = initialCapital;
+      let totalInvested = initialCapital;
+      let achievedMonth = -1;
+
+      // 圖表取樣點 (按年)
+      let labels = [];
+      let assetData = [];
+      let investedData = [];
+      let targetLine = [];
+
+      labels.push(currentAge);
+      assetData.push(Math.round(asset / 10000));
+      investedData.push(Math.round(totalInvested / 10000));
+      targetLine.push(Math.round(fireTarget / 10000));
+
+      for (let m = 1; m <= maxMonths; m++) {
+        asset = asset * (1 + monthlyRate) + monthlyInvestment;
+        totalInvested += monthlyInvestment;
+
+        if (achievedMonth === -1 && asset >= fireTarget) {
+          achievedMonth = m;
+        }
+
+        // 每年記錄一次作為圖表數據
+        if (m % 12 === 0) {
+          const age = currentAge + (m / 12);
+          labels.push(age);
+          assetData.push(Math.round(asset / 10000));
+          investedData.push(Math.round(totalInvested / 10000));
+          targetLine.push(Math.round(fireTarget / 10000));
+        }
+      }
+
+      // 更新卡片指標
+      const fireAgeCard = document.getElementById('res-fireAge');
+      const remainYearsCard = document.getElementById('res-remainYears');
+      const fireNumberCard = document.getElementById('res-fireNumber');
+      const savedTotalCard = document.getElementById('res-savedTotal');
+      const interestDiffCard = document.getElementById('res-interestDiff');
+
+      fireNumberCard.innerText = `$${(fireTarget / 10000).toLocaleString()} 萬`;
+
+      if (achievedMonth !== -1) {
+        const fireAge = (currentAge + achievedMonth / 12).toFixed(1);
+        const remainYears = (achievedMonth / 12).toFixed(1);
+        fireAgeCard.innerText = `${fireAge} 歲`;
+        remainYearsCard.innerText = `還需奮鬥 ${remainYears} 年`;
+
+        // 達成當下的投入本金估算
+        const investedAtFire = initialCapital + (monthlyInvestment * achievedMonth);
+        savedTotalCard.innerText = `$${(investedAtFire / 10000).toFixed(0)} 萬`;
+        const diffRatio = (((fireTarget - investedAtFire) / investedAtFire) * 100).toFixed(0);
+        interestDiffCard.innerText = `複利創造了額外 +${diffRatio}% 財富`;
+      } else {
+        fireAgeCard.innerText = `> 85 歲`;
+        remainYearsCard.innerText = `儲蓄率或報酬需提升`;
+        savedTotalCard.innerText = `需再努力`;
+        interestDiffCard.innerText = `建議提高月投資金額`;
+      }
+
+      // 繪製或更新圖表
+      renderChart(labels, assetData, investedData, targetLine);
+    }
+
+    // Chart.js 渲染
+    function renderChart(labels, assetData, investedData, targetLine) {
+      const ctx = document.getElementById('fireChart').getContext('2d');
+
+      if (chartInstance) {
+        chartInstance.data.labels = labels;
+        chartInstance.data.datasets[0].data = assetData;
+        chartInstance.data.datasets[1].data = investedData;
+        chartInstance.data.datasets[2].data = targetLine;
+        chartInstance.update();
+        return;
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: '預估總資產 (含複利)',
+              data: assetData,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              fill: true,
+              borderWidth: 3,
+              tension: 0.35,
+              pointRadius: 0
+            },
+            {
+              label: '累計自行投入本金',
+              data: investedData,
+              borderColor: '#64748b',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              tension: 0.1,
+              pointRadius: 0
+            },
+            {
+              label: 'FIRE 退休目標門檻線',
+              data: targetLine,
+              borderColor: '#f59e0b',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { color: '#94a3b8', font: { size: 12 } }
+            },
+            tooltip: {
+              callbacks: {
+                title: function(items) {
+                  return items[0].label + ' 歲預估';
+                },
+                label: function(ctx) {
+                  return ' ' + ctx.dataset.label + ': ' + ctx.raw.toLocaleString() + ' 萬元';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { 
+                color: '#94a3b8', 
+                callback: function(val, index) {
+                  const label = this.chart.data.labels[index];
+                  return label !== undefined ? label + ' 歲' : '';
+                }
+              }
+            },
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { 
+                color: '#94a3b8', 
+                callback: function(val) {
+                  return val.toLocaleString() + ' 萬';
+                } 
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 初次計算
+    calculate();
+  </script>
+</body>
+</html>
