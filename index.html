@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>財務自由・退休倒數計算機 | RetireEarly</title>
+  <title>FIRE 財務自由・退休倒數計算機 | RetireEarly</title>
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -345,12 +345,6 @@
       color: var(--text-muted);
     }
 
-    .badge-diff {
-      color: var(--primary);
-      font-size: 0.78rem;
-      font-weight: 600;
-    }
-
     /* Chart Container */
     .chart-box {
       position: relative;
@@ -372,7 +366,7 @@
   <div class="container">
     <header>
       <div class="badge">🔥 經典 4% 法則與複利模型</div>
-      <h1>財務自由・退休倒數計算機</h1>
+      <h1>FIRE 財務自由・退休倒數計算機</h1>
       <p class="subtitle">拉動滑桿調整你的儲蓄與投資習慣，探索自己何時能實現不用看老闆臉色的躺平人生。</p>
     </header>
 
@@ -381,9 +375,9 @@
       <div class="glass-card">
         <div class="section-title">⚡ 快速代入情境</div>
         <div class="preset-container">
-          <button class="btn-preset" onclick="applyPreset(22, 5, 8000, 30000)">🎓 剛畢業</button>
-          <button class="btn-preset" onclick="applyPreset(28, 30, 20000, 40000)">💼 穩定小資</button>
-          <button class="btn-preset" onclick="applyPreset(32, 120, 50000, 60000)">🚀 衝刺族</button>
+          <button class="btn-preset" onclick="applyPreset(22, 5, 8000, 0, 30000)">🎓 剛畢業</button>
+          <button class="btn-preset" onclick="applyPreset(28, 30, 20000, 5, 40000)">💼 穩定小資</button>
+          <button class="btn-preset" onclick="applyPreset(32, 120, 50000, 20, 60000)">🚀 衝刺族</button>
         </div>
 
         <div class="section-title">🎯 退休目標模式</div>
@@ -428,6 +422,18 @@
           <div class="input-row">
             <input type="range" id="monthly" min="1000" max="150000" value="15000" step="1000">
             <input type="number" id="num-monthly" value="15000">
+          </div>
+        </div>
+
+        <!-- 每年額外投入 (年終/分紅) - 新增項目 -->
+        <div class="form-group">
+          <div class="label-row">
+            <span>每年額外單筆投資 (年終/分紅)</span>
+            <span id="txt-annualLump">0 萬元</span>
+          </div>
+          <div class="input-row">
+            <input type="range" id="annualLump" min="0" max="100" value="0" step="1">
+            <input type="number" id="num-annualLump" value="0">
           </div>
         </div>
 
@@ -510,6 +516,7 @@
       { id: 'age', num: 'num-age', txt: 'txt-age', unit: ' 歲' },
       { id: 'initAsset', num: 'num-initAsset', txt: 'txt-initAsset', unit: ' 萬元' },
       { id: 'monthly', num: 'num-monthly', txt: 'txt-monthly', unit: ' 元', format: true },
+      { id: 'annualLump', num: 'num-annualLump', txt: 'txt-annualLump', unit: ' 萬元' },
       { id: 'expenses', num: 'num-expenses', txt: 'txt-expenses', unit: ' 元', format: true },
       { id: 'rate', num: 'num-rate', txt: 'txt-rate', unit: '%' }
     ];
@@ -536,10 +543,11 @@
     });
 
     // 情境預設按鈕
-    function applyPreset(age, initAsset, monthly, exp) {
+    function applyPreset(age, initAsset, monthly, annualLump, exp) {
       updateField('age', age);
       updateField('initAsset', initAsset);
       updateField('monthly', monthly);
+      updateField('annualLump', annualLump);
       updateField('expenses', exp);
       calculate();
     }
@@ -568,6 +576,7 @@
       const currentAge = parseInt(document.getElementById('age').value);
       const initialCapital = parseFloat(document.getElementById('initAsset').value) * 10000;
       let monthlyInvestment = parseFloat(document.getElementById('monthly').value);
+      const annualLumpSum = parseFloat(document.getElementById('annualLump').value) * 10000;
       const baseMonthlyExpense = parseFloat(document.getElementById('expenses').value) * currentModeMultiplier;
       const annualRate = parseFloat(document.getElementById('rate').value) / 100;
 
@@ -599,8 +608,15 @@
       targetLine.push(Math.round(fireTarget / 10000));
 
       for (let m = 1; m <= maxMonths; m++) {
+        // 月報酬與每月投資
         asset = asset * (1 + monthlyRate) + monthlyInvestment;
         totalInvested += monthlyInvestment;
+
+        // 每年年底額外灌入年終/分紅資金
+        if (m % 12 === 0 && annualLumpSum > 0) {
+          asset += annualLumpSum;
+          totalInvested += annualLumpSum;
+        }
 
         if (achievedMonth === -1 && asset >= fireTarget) {
           achievedMonth = m;
@@ -632,7 +648,8 @@
         remainYearsCard.innerText = `還需奮鬥 ${remainYears} 年`;
 
         // 達成當下的投入本金估算
-        const investedAtFire = initialCapital + (monthlyInvestment * achievedMonth);
+        const yearsPassed = Math.floor(achievedMonth / 12);
+        const investedAtFire = initialCapital + (monthlyInvestment * achievedMonth) + (annualLumpSum * yearsPassed);
         savedTotalCard.innerText = `$${(investedAtFire / 10000).toFixed(0)} 萬`;
         const diffRatio = (((fireTarget - investedAtFire) / investedAtFire) * 100).toFixed(0);
         interestDiffCard.innerText = `複利創造了額外 +${diffRatio}% 財富`;
@@ -640,7 +657,7 @@
         fireAgeCard.innerText = `> 85 歲`;
         remainYearsCard.innerText = `儲蓄率或報酬需提升`;
         savedTotalCard.innerText = `需再努力`;
-        interestDiffCard.innerText = `建議提高月投資金額`;
+        interestDiffCard.innerText = `建議提高月投資或年終金額`;
       }
 
       // 繪製或更新圖表
